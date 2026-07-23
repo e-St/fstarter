@@ -26,7 +26,7 @@
         "editor.inlayHints.enabled": "on",
         "FSharp.inlayHints.typeAnnotations": false,
         "FSharp.inlayHints.parameterNames": true,
-        "FSharp.inlayHints.enabled": true, // kept for compatibility (the above editor. setting is preferred)
+        "FSharp.inlayHints.enabled": true, // kept for compatibility
         "FSharp.linter": true,
         "FSharp.enableAnalyzers": true,
         "FSharp.unusedDeclarationsAnalyzer": true, // Best for detecting unused code
