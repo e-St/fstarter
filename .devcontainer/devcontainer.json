@@ -1,15 +1,21 @@
 {
-  "name": "F# .NET (Paket + Fun.Build + Ionide)",
+  // fstarter + fspure (pure/impure labels).
+  // Source pack: e-St/fspure → integrations/fstarter/overlay/
+  // Apply by copying into e-St/fstarter/.devcontainer/
+  "name": "F# .NET (Paket + Fun.Build + Ionide + fspure)",
   "image": "ghcr.io/e-st/fstarter:latest",
   "remoteUser": "vscode",
-  "postCreateCommand": "echo '✅ Dev container ready — newf <ProjectName> scaffolds a backend | newf <ProjectName> --ui scaffolds an Elmish Land frontend | watchf to start watch mode'",
+  // Install analyzer + decorations; re-run on attach when `code` CLI is ready.
+  "postCreateCommand": "bash .devcontainer/setup-fspure.sh",
+  "postAttachCommand": "bash .devcontainer/setup-fspure.sh",
   "customizations": {
     "vscode": {
       "extensions": [
         "ionide.ionide-fsharp",
         "ionide.ionide-paket",
         "ionide.ionide-fantomas",
-        "ms-dotnettools.csharp"
+        "ms-dotnettools.csharp",
+        "e-st.fsharp-pure-decorations"
       ],
       "settings": {
         // === Reduce intrusive autocompletions while typing ===
@@ -20,18 +26,34 @@
           "editor.quickSuggestions": false,
           "editor.suggestOnTriggerCharacters": false
         },
-        // === Inlay Hints: HM-style types shown AFTER the code (on demand) ===
+        // === Solution (fstarter root) ===
         "dotnet.defaultSolution": "solution.slnx",
+        "FSharp.workspacePath": "solution.slnx",
         "FSharp.enableMSBuildProjectGraph": true,
+        // === Inlay hints + LineLens (badges sit after // signature) ===
         "editor.inlayHints.enabled": "on",
         "FSharp.inlayHints.typeAnnotations": false,
         "FSharp.inlayHints.parameterNames": true,
-        "FSharp.inlayHints.enabled": true, // kept for compatibility
+        "FSharp.inlayHints.enabled": true,
+        "FSharp.lineLens.enabled": "replaceCodeLens",
+        "FSharp.lineLens.prefix": "// ",
         "FSharp.linter": true,
+        // === PureAnalyzer (workspace drop written by setup-fspure.sh) ===
         "FSharp.enableAnalyzers": true,
-        "FSharp.unusedDeclarationsAnalyzer": true, // Best for detecting unused code
-        "FSharp.codeLenses.references.enabled": false, // Optional: shows "X references" above lines
+        "FSharp.analyzersPath": [
+          "analyzers",
+          "packages/Analyzers"
+        ],
+        "FSharp.unusedDeclarationsAnalyzer": true,
+        "FSharp.codeLenses.references.enabled": false,
         "editor.formatOnSave": true,
+        // === pure / impure end-of-line badges ===
+        "fsharpPureDecorations.enabled": true,
+        "workbench.colorCustomizations": {
+          "editorHint.foreground": "#00000000",
+          "editorHint.border": "#00000000",
+          "editorOverviewRuler.hintForeground": "#00000000"
+        },
         "files.exclude": {
           "**/obj": true,
           "**/bin": true,
@@ -42,6 +64,9 @@
   },
   "features": {},
   "remoteEnv": {
-    "DOTNET_ROLL_FORWARD": "Major"
+    "DOTNET_ROLL_FORWARD": "Major",
+    "TMPDIR": "/home/vscode/.cache/nuget-tmp",
+    "TEMP": "/home/vscode/.cache/nuget-tmp",
+    "TMP": "/home/vscode/.cache/nuget-tmp"
   }
 }
