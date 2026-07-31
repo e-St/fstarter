@@ -63,11 +63,11 @@ install_analyzer_nuget() {
   echo "==> FSharp.PureAnalyzer: nuget.org"
   (
     cd "$tmp"
-    # Quiet: X.509 / CACHE / Restored lines are normal, not errors.
-    dotnet new classlib -n install -f net10.0 --force --language C# --verbosity quiet >/dev/null
+    # Quiet via redirect: `dotnet add package` does not accept --verbosity on all SDKs.
+    # (X.509 / CACHE / Restored lines are normal info, not errors.)
+    dotnet new classlib -n install -f net10.0 --force --language C# >/dev/null
     cd install
-    # --verbosity quiet still prints some "info :" on older SDKs; redirect noise.
-    dotnet add package FSharp.PureAnalyzer --verbosity quiet >/dev/null
+    dotnet add package FSharp.PureAnalyzer >/dev/null
   )
 }
 
@@ -110,3 +110,4 @@ fi
 echo ""
 echo "✅ fspure setup done."
 echo "   Analyzer: $WORKSPACE_ANALYZERS/FSharp.PureAnalyzer.dll"
+echo "   If pure/impure labels are missing: Developer: Reload Window"
