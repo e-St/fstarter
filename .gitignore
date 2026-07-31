@@ -1,4 +1,5 @@
 **/paket-files/paket.restore.cached
 **/obj/
+**/analyzers/
 **/bin/
 .fake
