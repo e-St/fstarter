@@ -1,11 +1,9 @@
 {
   // fstarter + fspure (pure/impure labels).
   // Source pack: e-St/fspure → integrations/fstarter/overlay/
-  // Apply by copying into e-St/fstarter/.devcontainer/
   "name": "F# .NET (Paket + Fun.Build + Ionide + fspure)",
   "image": "ghcr.io/e-st/fstarter:latest",
   "remoteUser": "vscode",
-  // Install analyzer + decorations; re-run on attach when `code` CLI is ready.
   "postCreateCommand": "bash .devcontainer/setup-fspure.sh",
   "postAttachCommand": "bash .devcontainer/setup-fspure.sh",
   "customizations": {
@@ -18,7 +16,6 @@
         "e-st.fsharp-pure-decorations"
       ],
       "settings": {
-        // === Reduce intrusive autocompletions while typing ===
         "editor.inlineSuggest.enabled": false,
         "editor.parameterHints.enabled": false,
         "editor.acceptSuggestionOnEnter": "off",
@@ -26,11 +23,9 @@
           "editor.quickSuggestions": false,
           "editor.suggestOnTriggerCharacters": false
         },
-        // === Solution (fstarter root) ===
         "dotnet.defaultSolution": "solution.slnx",
         "FSharp.workspacePath": "solution.slnx",
         "FSharp.enableMSBuildProjectGraph": true,
-        // === Inlay hints + LineLens (badges sit after // signature) ===
         "editor.inlayHints.enabled": "on",
         "FSharp.inlayHints.typeAnnotations": false,
         "FSharp.inlayHints.parameterNames": true,
@@ -38,7 +33,6 @@
         "FSharp.lineLens.enabled": "replaceCodeLens",
         "FSharp.lineLens.prefix": "// ",
         "FSharp.linter": true,
-        // === PureAnalyzer (workspace drop written by setup-fspure.sh) ===
         "FSharp.enableAnalyzers": true,
         "FSharp.analyzersPath": [
           "analyzers",
@@ -47,7 +41,6 @@
         "FSharp.unusedDeclarationsAnalyzer": true,
         "FSharp.codeLenses.references.enabled": false,
         "editor.formatOnSave": true,
-        // === pure / impure end-of-line badges ===
         "fsharpPureDecorations.enabled": true,
         "workbench.colorCustomizations": {
           "editorHint.foreground": "#00000000",

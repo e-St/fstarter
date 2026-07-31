@@ -2,7 +2,8 @@
 # Install fspure into an fstarter (or customer) Codespace / dev container.
 #
 # - FSharp.PureAnalyzer from nuget.org → workspace analyzers/dotnet/fs/
-# - fsharp-pure-decorations via `code` CLI when available
+# - fsharp-pure-decorations from Open VSX (.vsix) — not MS Marketplace
+#   (Codespaces `code --install-extension <id>` only sees Marketplace)
 #
 # Wired from devcontainer.json:
 #   postCreateCommand / postAttachCommand → bash .devcontainer/setup-fspure.sh
@@ -25,6 +26,8 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 WORKSPACE_ANALYZERS="$ROOT/analyzers/dotnet/fs"
 GLOBAL_PACKAGES="${NUGET_PACKAGES:-$HOME/.nuget/packages}"
 PUBLISHER_EXT="e-st.fsharp-pure-decorations"
+# Open VSX API uses publisher casing e-St
+OPENVSX_API="https://open-vsx.org/api/e-St/fsharp-pure-decorations/latest"
 
 code_cli_usable() {
   command -v code >/dev/null 2>&1 || return 1
@@ -60,10 +63,24 @@ install_analyzer_nuget() {
   echo "==> FSharp.PureAnalyzer: nuget.org"
   (
     cd "$tmp"
-    dotnet new classlib -n install -f net10.0 --force --language C# >/dev/null
+    # Quiet: X.509 / CACHE / Restored lines are normal, not errors.
+    dotnet new classlib -n install -f net10.0 --force --language C# --verbosity quiet >/dev/null
     cd install
-    dotnet add package FSharp.PureAnalyzer
+    # --verbosity quiet still prints some "info :" on older SDKs; redirect noise.
+    dotnet add package FSharp.PureAnalyzer --verbosity quiet >/dev/null
   )
+}
+
+install_extension_openvsx() {
+  local vsix url
+  vsix="$(mktemp --suffix=.vsix)"
+  # shellcheck disable=SC2064
+  trap "rm -f '$vsix'" RETURN
+  echo "==> fsharp-pure-decorations: Open VSX VSIX"
+  url="$(curl -fsSL "$OPENVSX_API" \
+    | python3 -c "import json,sys; print(json.load(sys.stdin)['files']['download'])")"
+  curl -fsSL -o "$vsix" "$url"
+  code --install-extension "$vsix" --force
 }
 
 echo "==> fspure setup (fstarter)"
@@ -78,11 +95,12 @@ else
 fi
 
 if code_cli_usable; then
-  echo "==> fsharp-pure-decorations: code --install-extension"
-  if code --install-extension "$PUBLISHER_EXT" --force; then
-    echo "✅ Installed $PUBLISHER_EXT"
+  if install_extension_openvsx; then
+    echo "✅ Installed $PUBLISHER_EXT (Open VSX VSIX)"
   else
-    echo "WARNING: extension install failed; try Open VSX / VSIX after attach." >&2
+    echo "WARNING: Open VSX VSIX install failed." >&2
+    echo "         Manual: download .vsix from https://open-vsx.org/extension/e-St/fsharp-pure-decorations" >&2
+    echo "         then: code --install-extension /path/to/file.vsix --force" >&2
   fi
 else
   echo "WARNING: VS Code 'code' CLI not usable; skip extension install." >&2
@@ -92,4 +110,3 @@ fi
 echo ""
 echo "✅ fspure setup done."
 echo "   Analyzer: $WORKSPACE_ANALYZERS/FSharp.PureAnalyzer.dll"
-echo "   If pure/impure labels are missing: Developer: Reload Window"
