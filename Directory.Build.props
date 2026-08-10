@@ -1,16 +1,15 @@
 <Project>
   <PropertyGroup>
-    <!-- === Compiler Strictness ===
+    <!-- === Compiler Strictness (source of truth shared with e-St/fspure Directory.Build.props) ===
          FS0025 = incomplete pattern match. Treating this as an error turns F#'s
-         exhaustive matching into a hard compile-time guarantee (see
-         https://fsharpforfunandprofit.com on domain modeling / exhaustive matching). -->
+         exhaustive matching into a hard compile-time guarantee. -->
     <WarningsAsErrors>$(WarningsAsErrors);FS0025</WarningsAsErrors>
 
-    <!-- Modern .NET defaults -->
     <Nullable>enable</Nullable>
+    <LangVersion Condition="'$(LangVersion)' == ''">latest</LangVersion>
 
-    <!-- Stricter in Release/CI builds: fail on any warning, with a small allow-list. -->
-    <TreatWarningsAsErrors Condition="'$(Configuration)' == 'Release'">true</TreatWarningsAsErrors>
-    <WarningsNotAsErrors Condition="'$(Configuration)' == 'Release'">$(WarningsNotAsErrors);FS0049;FS0020</WarningsNotAsErrors>
+    <!-- Fail on any warning in Debug and Release (same as fspure monorepo). -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);FS0049;FS0020</WarningsNotAsErrors>
   </PropertyGroup>
 </Project>
