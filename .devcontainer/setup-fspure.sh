@@ -4,7 +4,7 @@
 # - fsharp-pure-decorations from Open VSX VSIX (not MS Marketplace id)
 #
 # Version pin: FSPURE_ANALYZER_VERSION env, or .devcontainer/fspure-versions.env
-# (synced from e-St/fspure integrations/fstarter/versions.env).
+# (synced from e-St/fspure src/scripts/integrations/fstarter/versions.env).
 set -euo pipefail
 
 if [[ "${SKIP_FSPURE_SETUP:-}" == "1" ]]; then
