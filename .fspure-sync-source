@@ -1,8 +1,8 @@
 source_repo=e-St/fspure
 source_path=src/scripts/integrations/fstarter
-source_sha=c70dba569d5840ba62d33660bb78e32ba8fee662
+source_sha=d1a9c1ccb26446787731f32398505a3095aec56a
 source_ref=refs/heads/main
 fspure_analyzer_version=0.4.0
-synced_at_utc=2026-08-12T18:26:22Z
-workflow_run=https://github.com/e-St/fspure/actions/runs/31627624376
+synced_at_utc=2026-08-12T18:46:37Z
+workflow_run=https://github.com/e-St/fspure/actions/runs/31629329212
 method=pull-request
