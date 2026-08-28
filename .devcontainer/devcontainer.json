@@ -1,6 +1,6 @@
 {
   "name": "F# .NET (Paket + Fun.Build + Ionide + fspure)",
-  "image": "ghcr.io/e-st/schi:latest",
+  "image": "ghcr.io/e-st/fstarter:latest",
   "remoteUser": "vscode",
   "postCreateCommand": "bash .devcontainer/setup-fspure.sh",
   "postAttachCommand": "bash .devcontainer/setup-fspure.sh",
