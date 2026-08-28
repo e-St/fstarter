@@ -34,6 +34,6 @@ jobs:
           context: .
           file: .devcontainer/Dockerfile
           push: true
-          tags: ghcr.io/e-st/fstarter:latest
+          tags: ghcr.io/e-st/schi:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
