@@ -24,20 +24,24 @@ COPY .devcontainer/replf.sh /usr/local/bin/replf
 RUN chmod +x /usr/local/bin/newf /usr/local/bin/bundlef /usr/local/bin/runf \
         /usr/local/bin/watchf /usr/local/bin/replf
 
+# Ubuntu image /bin/sh is dash — `set -o pipefail` is a bash option (CI exit 2).
+SHELL ["/bin/bash", "-c"]
+
 # Pin-sensitive fspure bits: CLI, analyzer DLLs, Copilot skill, decorations VSIX.
+# $$ keeps pins for the shell after sourcing versions.env (Docker would otherwise empty ${...}).
 RUN set -euo pipefail \
     && set -a && . /usr/local/share/fspure/versions.env && set +a \
     && curl -fsSL -o /usr/local/bin/fspure \
-        "https://github.com/e-St/fspure/releases/download/${FSPURE_CLI_RELEASE}/fspure" \
+        "https://github.com/e-St/fspure/releases/download/$${FSPURE_CLI_RELEASE}/fspure" \
     && chmod +x /usr/local/bin/fspure \
     && mkdir -p /usr/local/share/fspure/analyzers/dotnet/fs \
         /usr/local/share/fspure/skills/fspure-reduce-impurity \
     && curl -fsSL -o /tmp/fsharp.pureanalyzer.nupkg \
-        "https://api.nuget.org/v3-flatcontainer/fsharp.pureanalyzer/${FSPURE_ANALYZER_VERSION}/fsharp.pureanalyzer.${FSPURE_ANALYZER_VERSION}.nupkg" \
+        "https://api.nuget.org/v3-flatcontainer/fsharp.pureanalyzer/$${FSPURE_ANALYZER_VERSION}/fsharp.pureanalyzer.$${FSPURE_ANALYZER_VERSION}.nupkg" \
     && unzip -qo /tmp/fsharp.pureanalyzer.nupkg "analyzers/dotnet/fs/*" -d /tmp/fspure-nupkg \
     && cp /tmp/fspure-nupkg/analyzers/dotnet/fs/*.dll /usr/local/share/fspure/analyzers/dotnet/fs/ \
     && curl -fsSL -o /usr/local/share/fspure/skills/fspure-reduce-impurity/SKILL.md \
-        "https://raw.githubusercontent.com/e-St/fspure/${FSPURE_SKILL_REF}/plugins/fspure/skills/fspure-reduce-impurity/SKILL.md" \
+        "https://raw.githubusercontent.com/e-St/fspure/$${FSPURE_SKILL_REF}/plugins/fspure/skills/fspure-reduce-impurity/SKILL.md" \
     && python3 -c "import json,urllib.request; url=json.load(urllib.request.urlopen('https://open-vsx.org/api/e-St/fsharp-pure-decorations/latest'))['files']['download']; urllib.request.urlretrieve(url, '/usr/local/share/fspure/fsharp-pure-decorations.vsix')" \
     && rm -rf /tmp/fsharp.pureanalyzer.nupkg /tmp/fspure-nupkg
 
