@@ -15,6 +15,6 @@ If this task changed overlay-copied files or container start behavior, end with 
 1. fspure’s overlay matches what you just did.
 2. the next **PR fspure updates to fstarter** does not overwrite it.
 
-Do not restore `postAttachCommand`, `features` / `github-cli`, or a nuget-every-start `setup-fspure.sh`. Do not drop `/usr/local/share/fspure/analyzers` from `FSharp.analyzersPath`.
+Do not restore `postAttachCommand`, `features` / `github-cli`, or a nuget-every-start `setup-fspure.sh`. Do not drop `/usr/local/share/fspure/analyzers` from `FSharp.analyzersPath`. Do not skip `fsharp-pure-decorations` VSIX install when the `code` CLI is unusable — unpack the baked VSIX into VS Code extension folders (pure/impure labels depend on it).
 
 Full rules: `.github/agents/fspure-integration.agent.md`.

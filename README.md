@@ -11,8 +11,8 @@ https://docs.github.com/en/repositories/creating-and-managing-repositories/creat
 ## Out of the box (zero edits)
 
 - The dev container pulls `ghcr.io/e-st/fstarter:latest` (public GHCR image).
-- VS Code/Codespaces extensions in `.devcontainer/devcontainer.json` install automatically (Ionide, C#, fsharp-pure-decorations).
-- `postCreateCommand` runs `.devcontainer/setup-fspure.sh` (analyzer DLLs for Ionide, `fspure` CLI, Copilot skill).
+- VS Code/Codespaces extensions in `.devcontainer/devcontainer.json` install automatically (Ionide, C#). `fsharp-pure-decorations` is not on the MS Marketplace; setup unpacks the baked Open VSX VSIX (pure/impure labels).
+- `postCreateCommand` runs `.devcontainer/setup-fspure.sh` (analyzer DLLs for Ionide, decorations VSIX, `fspure` CLI, Copilot skill).
 
 The image-publish workflow in `.github/workflows/devcontainer.yml` only runs in `e-St/fstarter`. Downstream repos keep the shared image and do not need to rename tags.
 

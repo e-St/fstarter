@@ -35,7 +35,7 @@ Pins: `FSPURE_ANALYZER_VERSION`, `FSPURE_SKILL_REF`, `FSPURE_CLI_RELEASE`.
 2. Setup runs once: `postCreateCommand` is `bash .devcontainer/setup-fspure.sh`. No `postAttachCommand`.
 3. No `features` block (no `github-cli` feature). Node, `gh`, unzip, and fspure bits are already in the image.
 4. `FSharp.analyzersPath` includes `/usr/local/share/fspure/analyzers` before `analyzers` and `packages/Analyzers`.
-5. `setup-fspure.sh` copies from `/usr/local/share/fspure/` first. Only if that is missing: nuget / Open VSX / `gh skill install`.
+5. `setup-fspure.sh` copies from `/usr/local/share/fspure/` first. Only if that is missing: nuget / Open VSX / `gh skill install`. It must install `e-st.fsharp-pure-decorations` from the baked VSIX even when the `code` CLI is unusable (unpack into `~/.vscode-remote/extensions` and `~/.vscode-server/extensions`). Pure/impure labels depend on that extension. Do not skip it, and do not restore `postAttachCommand` to paper over a skipped install.
 6. Skill fallback still contains `--agent github-copilot`, `--scope user`, and `--pin`.
 7. Dockerfile, `bake-fspure.sh`, and `.github/workflows/devcontainer.yml` stay here. Do not add a Dockerfile to the fspure overlay.
 

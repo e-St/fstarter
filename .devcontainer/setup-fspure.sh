@@ -116,43 +116,138 @@ install_analyzer_nuget() {
   )
 }
 
-extension_installed() {
-  code --list-extensions 2>/dev/null | grep -qi '^e-st\.fsharp-pure-decorations$'
+# postCreate often runs before the `code` CLI works. Do not skip this: the
+# pure/impure labels come from this extension, not from Ionide LineLens.
+extension_dirs() {
+  local d
+  for d in \
+    "${HOME}/.vscode-remote/extensions" \
+    "${HOME}/.vscode-server/extensions" \
+    ${VSCODE_EXTENSIONS:+"$VSCODE_EXTENSIONS"}; do
+    printf '%s\n' "$d"
+  done
 }
 
-install_extension_openvsx() {
-  local vsix url
-  vsix="$(mktemp --suffix=.vsix)"
-  # shellcheck disable=SC2064
-  trap "rm -f '$vsix'" RETURN
-  echo "==> fsharp-pure-decorations: Open VSX VSIX"
+extension_on_disk() {
+  local d
+  while IFS= read -r d; do
+    [[ -d "$d" ]] || continue
+    if compgen -G "$d/${PUBLISHER_EXT}-*" > /dev/null; then
+      return 0
+    fi
+  done < <(extension_dirs)
+  return 1
+}
+
+register_extension_json() {
+  local ext_root="$1"
+  local dest="$2"
+  local publisher="$3"
+  local name="$4"
+  local version="$5"
+  local json="$ext_root/extensions.json"
+  python3 - "$json" "$dest" "$publisher.$name" "$version" <<'PY'
+import json, os, sys, time
+path, dest, ext_id, version = sys.argv[1:5]
+entries = []
+if os.path.isfile(path):
+    try:
+        with open(path, encoding="utf-8") as f:
+            entries = json.load(f)
+        if not isinstance(entries, list):
+            entries = []
+    except json.JSONDecodeError:
+        entries = []
+entries = [e for e in entries if (e.get("identifier") or {}).get("id") != ext_id]
+entries.append({
+    "identifier": {"id": ext_id},
+    "version": version,
+    "location": {"$mid": 1, "path": dest, "scheme": "file"},
+    "relativeLocation": os.path.basename(dest),
+    "metadata": {
+        "installedTimestamp": int(time.time() * 1000),
+        "pinned": True,
+        "source": "vsix",
+    },
+})
+os.makedirs(os.path.dirname(path), exist_ok=True)
+with open(path, "w", encoding="utf-8") as f:
+    json.dump(entries, f)
+PY
+}
+
+unpack_vsix() {
+  local vsix="$1"
+  local tmp pkg publisher name version dest d
+  tmp="$(mktemp -d)"
+  unzip -qo "$vsix" -d "$tmp"
+  pkg="$tmp/extension/package.json"
+  if [[ ! -f "$pkg" ]]; then
+    rm -rf "$tmp"
+    echo "ERROR: $vsix is not a VS Code VSIX (missing extension/package.json)" >&2
+    return 1
+  fi
+  publisher="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["publisher"])' "$pkg")"
+  name="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["name"])' "$pkg")"
+  version="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["version"])' "$pkg")"
+  while IFS= read -r d; do
+    mkdir -p "$d"
+    dest="$d/${publisher}.${name}-${version}"
+    mkdir -p "$dest"
+    cp -a "$tmp/extension/." "$dest/"
+    if [[ -f "$tmp/extension.vsixmanifest" ]]; then
+      cp -f "$tmp/extension.vsixmanifest" "$dest/.vsixmanifest"
+    fi
+    register_extension_json "$d" "$dest" "$publisher" "$name" "$version"
+    echo "    unpacked → $dest"
+  done < <(extension_dirs)
+  rm -rf "$tmp"
+}
+
+download_openvsx_vsix() {
+  local dest="$1"
+  local url
   url="$(curl -fsSL "$OPENVSX_API" \
     | python3 -c "import json,sys; print(json.load(sys.stdin)['files']['download'])")"
-  curl -fsSL -o "$vsix" "$url"
-  code --install-extension "$vsix" --force
+  curl -fsSL -o "$dest" "$url"
 }
 
 install_extension() {
-  if ! code_cli_usable; then
-    echo "WARNING: VS Code 'code' CLI not usable; skip extension install." >&2
-    return 0
-  fi
-  if extension_installed; then
-    echo "✅ $PUBLISHER_EXT already installed"
+  local vsix="" tmp=""
+  if extension_on_disk; then
+    echo "✅ $PUBLISHER_EXT already on disk"
     return 0
   fi
   if [[ -f "$BAKED_VSIX" ]]; then
+    vsix="$BAKED_VSIX"
     echo "==> fsharp-pure-decorations: baked VSIX"
-    if code --install-extension "$BAKED_VSIX"; then
-      echo "✅ Installed $PUBLISHER_EXT (baked VSIX)"
-      return 0
+  else
+    tmp="$(mktemp --suffix=.vsix)"
+    echo "==> fsharp-pure-decorations: Open VSX VSIX"
+    if download_openvsx_vsix "$tmp"; then
+      vsix="$tmp"
+    else
+      rm -f "$tmp"
+      tmp=""
     fi
   fi
-  if install_extension_openvsx; then
-    echo "✅ Installed $PUBLISHER_EXT (Open VSX VSIX)"
-  else
-    echo "WARNING: Open VSX VSIX install failed." >&2
+  if [[ -z "$vsix" ]]; then
+    echo "ERROR: no fsharp-pure-decorations VSIX (baked missing, Open VSX failed)." >&2
+    return 1
   fi
+  unpack_vsix "$vsix"
+  if code_cli_usable; then
+    code --install-extension "$vsix" --force >/dev/null || true
+  else
+    echo "    code CLI not usable; installed via filesystem unpack"
+  fi
+  [[ -z "$tmp" ]] || rm -f "$tmp"
+  if extension_on_disk; then
+    echo "✅ $PUBLISHER_EXT on disk (pure/impure labels)"
+    return 0
+  fi
+  echo "ERROR: could not install $PUBLISHER_EXT; pure/impure labels will not show." >&2
+  return 1
 }
 
 ensure_github_cli() {

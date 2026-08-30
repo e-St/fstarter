@@ -13,7 +13,7 @@ Give the prompt even if you are not sure — better an extra fspure check than a
 
 Files fspure copies: `.devcontainer/setup-fspure.sh`, `.devcontainer/devcontainer.json`, `Directory.Build.props`, generated `.devcontainer/fspure-versions.env`.
 
-This repo owns (fspure must not undo): image `ghcr.io/e-st/fstarter:latest`; `postCreateCommand` only (no `postAttachCommand`); no `features`; `FSharp.analyzersPath` includes `/usr/local/share/fspure/analyzers`; `setup-fspure.sh` copies from `/usr/local/share/fspure/` first; Dockerfile, `bake-fspure.sh`, and `.github/workflows/devcontainer.yml` stay here. Skill fallback must still contain `--agent github-copilot`, `--scope user`, `--pin`.
+This repo owns (fspure must not undo): image `ghcr.io/e-st/fstarter:latest`; `postCreateCommand` only (no `postAttachCommand`); no `features`; `FSharp.analyzersPath` includes `/usr/local/share/fspure/analyzers`; `setup-fspure.sh` copies from `/usr/local/share/fspure/` first and installs `e-st.fsharp-pure-decorations` from the baked VSIX even when `code` is unusable (filesystem unpack; labels depend on it); Dockerfile, `bake-fspure.sh`, and `.github/workflows/devcontainer.yml` stay here. Skill fallback must still contain `--agent github-copilot`, `--scope user`, `--pin`.
 
 `fspure-ready-lib` is a different force-push repo. Do not invent overlay coupling.
 
