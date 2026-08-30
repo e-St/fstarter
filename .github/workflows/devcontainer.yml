@@ -7,6 +7,7 @@ on:
       - main
     paths:
       - '.devcontainer/**'
+  workflow_dispatch:
 
 jobs:
   build-and-push:
@@ -39,3 +40,5 @@ jobs:
           tags: ghcr.io/e-st/fstarter:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          secrets: |
+            github_token=${{ secrets.GITHUB_TOKEN }}
