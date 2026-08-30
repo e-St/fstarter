@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 # Install fspure into an fstarter Codespace / dev container.
-# - FSharp.PureAnalyzer from nuget.org (pinned version) → workspace analyzers/dotnet/fs/
-# - fsharp-pure-decorations from Open VSX VSIX (not MS Marketplace id)
-# - standalone `fspure` CLI → ~/.local/bin (so Copilot does not download releases)
-# - Copilot skill via non-interactive `gh skill install`
+# Fast path: copy artifacts already baked into ghcr.io/e-st/fstarter.
+# Fallback: nuget / GitHub / Open VSX (older images, or a missing pin).
+#
+# - FSharp.PureAnalyzer → workspace analyzers/dotnet/fs/ (Ionide)
+# - fsharp-pure-decorations from a baked Open VSX VSIX (not MS Marketplace id)
+# - standalone `fspure` CLI on PATH
+# - Copilot skill fspure-reduce-impurity
 #
 # Version pin: FSPURE_ANALYZER_VERSION env, or .devcontainer/fspure-versions.env
 # (synced from e-St/fspure src/scripts/integrations/fstarter/versions.env).
@@ -25,6 +28,11 @@ WORKSPACE_ANALYZERS="$ROOT/analyzers/dotnet/fs"
 GLOBAL_PACKAGES="${NUGET_PACKAGES:-$HOME/.nuget/packages}"
 PUBLISHER_EXT="e-st.fsharp-pure-decorations"
 OPENVSX_API="https://open-vsx.org/api/e-St/fsharp-pure-decorations/latest"
+BAKED_ROOT="/usr/local/share/fspure"
+BAKED_ANALYZERS="$BAKED_ROOT/analyzers/dotnet/fs"
+BAKED_SKILL="$BAKED_ROOT/skills/fspure-reduce-impurity/SKILL.md"
+BAKED_VSIX="$BAKED_ROOT/fsharp-pure-decorations.vsix"
+USER_SKILL="${HOME}/.copilot/skills/fspure-reduce-impurity/SKILL.md"
 
 # Load pin from synced versions file (preferred) or env.
 if [[ -f "$DC_DIR/fspure-versions.env" ]]; then
@@ -52,23 +60,12 @@ code_cli_usable() {
   return 0
 }
 
-mirror_from_global() {
-  local src schema pkg_dir
-  pkg_dir="$GLOBAL_PACKAGES/fsharp.pureanalyzer/${FSPURE_ANALYZER_VERSION}"
-  src="$pkg_dir/analyzers/dotnet/fs/FSharp.PureAnalyzer.dll"
-  if [[ ! -f "$src" ]]; then
-    # Fall back to newest installed layout (upgrade path / floating restore).
-    src="$(
-      find "$GLOBAL_PACKAGES/fsharp.pureanalyzer" \
-        -path '*/analyzers/dotnet/fs/FSharp.PureAnalyzer.dll' 2>/dev/null \
-        | sort -V \
-        | tail -1 || true
-    )"
-  fi
-  if [[ -z "${src:-}" || ! -f "$src" ]]; then
-    return 1
-  fi
-  schema="$(dirname "$src")/FSharp.PureSchema.dll"
+copy_analyzer_dlls() {
+  local src_dir="$1"
+  local src schema
+  src="$src_dir/FSharp.PureAnalyzer.dll"
+  [[ -f "$src" ]] || return 1
+  schema="$src_dir/FSharp.PureSchema.dll"
   mkdir -p "$WORKSPACE_ANALYZERS"
   cp -f "$src" "$WORKSPACE_ANALYZERS/FSharp.PureAnalyzer.dll"
   if [[ -f "$schema" ]]; then
@@ -80,6 +77,28 @@ mirror_from_global() {
   if [[ -f "$WORKSPACE_ANALYZERS/FSharp.PureSchema.dll" ]]; then
     echo "    workspace → $WORKSPACE_ANALYZERS/FSharp.PureSchema.dll"
   fi
+}
+
+mirror_from_baked() {
+  copy_analyzer_dlls "$BAKED_ANALYZERS"
+}
+
+mirror_from_global() {
+  local src pkg_dir
+  pkg_dir="$GLOBAL_PACKAGES/fsharp.pureanalyzer/${FSPURE_ANALYZER_VERSION}"
+  src="$pkg_dir/analyzers/dotnet/fs/FSharp.PureAnalyzer.dll"
+  if [[ ! -f "$src" ]]; then
+    src="$(
+      find "$GLOBAL_PACKAGES/fsharp.pureanalyzer" \
+        -path '*/analyzers/dotnet/fs/FSharp.PureAnalyzer.dll' 2>/dev/null \
+        | sort -V \
+        | tail -1 || true
+    )"
+  fi
+  if [[ -z "${src:-}" || ! -f "$src" ]]; then
+    return 1
+  fi
+  copy_analyzer_dlls "$(dirname "$src")"
 }
 
 install_analyzer_nuget() {
@@ -97,6 +116,10 @@ install_analyzer_nuget() {
   )
 }
 
+extension_installed() {
+  code --list-extensions 2>/dev/null | grep -qi '^e-st\.fsharp-pure-decorations$'
+}
+
 install_extension_openvsx() {
   local vsix url
   vsix="$(mktemp --suffix=.vsix)"
@@ -109,25 +132,28 @@ install_extension_openvsx() {
   code --install-extension "$vsix" --force
 }
 
-echo "==> fspure setup (fstarter)"
-echo "    analyzer pin: $FSPURE_ANALYZER_VERSION"
-
-if install_analyzer_nuget && mirror_from_global; then
-  echo "✅ FSharp.PureAnalyzer ${FSPURE_ANALYZER_VERSION} installed and mirrored for Ionide"
-else
-  echo "ERROR: could not install or mirror FSharp.PureAnalyzer ${FSPURE_ANALYZER_VERSION} from nuget.org" >&2
-  exit 1
-fi
-
-if code_cli_usable; then
+install_extension() {
+  if ! code_cli_usable; then
+    echo "WARNING: VS Code 'code' CLI not usable; skip extension install." >&2
+    return 0
+  fi
+  if extension_installed; then
+    echo "✅ $PUBLISHER_EXT already installed"
+    return 0
+  fi
+  if [[ -f "$BAKED_VSIX" ]]; then
+    echo "==> fsharp-pure-decorations: baked VSIX"
+    if code --install-extension "$BAKED_VSIX"; then
+      echo "✅ Installed $PUBLISHER_EXT (baked VSIX)"
+      return 0
+    fi
+  fi
   if install_extension_openvsx; then
     echo "✅ Installed $PUBLISHER_EXT (Open VSX VSIX)"
   else
     echo "WARNING: Open VSX VSIX install failed." >&2
   fi
-else
-  echo "WARNING: VS Code 'code' CLI not usable; skip extension install." >&2
-fi
+}
 
 ensure_github_cli() {
   if command -v gh >/dev/null 2>&1 && gh skill --help >/dev/null 2>&1; then
@@ -182,6 +208,10 @@ install_fspure_cli() {
     echo "✅ fspure CLI $(command -v fspure)"
     return 0
   fi
+  if [[ -x /usr/local/bin/fspure ]] && /usr/local/bin/fspure analyze --help >/dev/null 2>&1; then
+    echo "✅ fspure CLI /usr/local/bin/fspure"
+    return 0
+  fi
   case "$(uname -m)" in
     x86_64 | amd64) ;;
     *)
@@ -206,6 +236,16 @@ install_fspure_cli() {
 }
 
 install_copilot_skill() {
+  mkdir -p "$(dirname "$USER_SKILL")"
+  if [[ -f "$USER_SKILL" ]]; then
+    echo "✅ Copilot skill fspure-reduce-impurity (already present)"
+    return 0
+  fi
+  if [[ -f "$BAKED_SKILL" ]]; then
+    cp -f "$BAKED_SKILL" "$USER_SKILL"
+    echo "✅ Copilot skill fspure-reduce-impurity (baked)"
+    return 0
+  fi
   ensure_github_cli || true
   if ! command -v gh >/dev/null 2>&1; then
     echo "WARNING: gh not on PATH; skip fspure Copilot skill." >&2
@@ -230,6 +270,21 @@ install_copilot_skill() {
   echo "WARNING: could not install e-St/fspure fspure-reduce-impurity (gh auth / network / ref ${FSPURE_SKILL_REF}?)." >&2
 }
 
+echo "==> fspure setup (fstarter)"
+echo "    analyzer pin: $FSPURE_ANALYZER_VERSION"
+
+if mirror_from_baked; then
+  echo "✅ FSharp.PureAnalyzer ${FSPURE_ANALYZER_VERSION} mirrored from image"
+elif [[ -f "$WORKSPACE_ANALYZERS/FSharp.PureAnalyzer.dll" ]]; then
+  echo "✅ FSharp.PureAnalyzer already in workspace"
+elif install_analyzer_nuget && mirror_from_global; then
+  echo "✅ FSharp.PureAnalyzer ${FSPURE_ANALYZER_VERSION} installed and mirrored for Ionide"
+else
+  echo "ERROR: could not install or mirror FSharp.PureAnalyzer ${FSPURE_ANALYZER_VERSION} from nuget.org" >&2
+  exit 1
+fi
+
+install_extension
 install_fspure_cli || true
 install_copilot_skill
 

@@ -1,0 +1,8 @@
+# Copy to .templatesyncignore (repo root or .github/) in a repo created from e-St/fstarter.
+# Paths here are skipped when pulling later fstarter changes.
+
+README.md
+solution.slnx
+test/
+analyzers/
+.fspure-sync-source

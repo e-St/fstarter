@@ -1,3 +1,4 @@
+# Edit this file and .devcontainer/Dockerfile / the image tag in .devcontainer/devcontainer.json only if you want a container other than ghcr.io/e-st/fstarter:latest.
 name: Rebuild Dev Container Image
 
 on:
@@ -9,6 +10,7 @@ on:
 
 jobs:
   build-and-push:
+    if: github.repository == 'e-St/fstarter'
     runs-on: ubuntu-latest
     permissions:
       contents: read

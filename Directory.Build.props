@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
-    <!-- === Compiler Strictness (source of truth shared with e-St/fspure Directory.Build.props) ===
+    <!-- === Compiler Strictness ===
          FS0025 = incomplete pattern match. Treating this as an error turns F#'s
          exhaustive matching into a hard compile-time guarantee. -->
     <WarningsAsErrors>$(WarningsAsErrors);FS0025</WarningsAsErrors>

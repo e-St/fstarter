@@ -1,0 +1,26 @@
+# Copy this file to .github/workflows/ in a repo created from e-St/fstarter.
+# It is not active in fstarter itself.
+#
+# Also enable: Settings > Actions > General > Allow GitHub Actions to create and approve pull requests
+name: template-sync
+
+on:
+  schedule:
+    - cron: "0 0 1 * *"
+  workflow_dispatch:
+
+jobs:
+  repo-sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: actions-template-sync
+        uses: AndreasAugustin/actions-template-sync@v2
+        with:
+          source_repo_path: e-St/fstarter
